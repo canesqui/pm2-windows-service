@@ -52,7 +52,7 @@ module.exports = co.wrap(function*(name) {
 
     // Try to clean up the daemon files
     yield common.remove_previous_daemon(service);
-    
+
     //TODO add parameter to keep environment variables if needed    
     yield delete_environment_variables(environment_variables);
 });
@@ -61,8 +61,7 @@ function* verify_service_exists(service_name) {
     yield exec('sc query ' + service_name);
 }
 
-function* stop_and_uninstall_service(service, service_name) {
-    console.log("stop_and_uninstall_service");
+function* stop_and_uninstall_service(service, service_name) {    
     // Make sure we kick off the stop event on next tick BEFORE we yield
     setImmediate(_ => service.stop());
 
