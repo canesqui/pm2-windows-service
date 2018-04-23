@@ -5,6 +5,7 @@ const path = require('path'),
     event = require('co-event'),
     promisify = require('util').promisify || require('promisify-node'),
     fsx = require('fs-extra'),
+    environment_variables = require('./question').questions,
     exec = promisify(require('child_process').exec),
     node_win = require('node-windows'),
     elevate = promisify(node_win.elevate),
@@ -51,6 +52,9 @@ module.exports = co.wrap(function*(name) {
 
     // Try to clean up the daemon files
     yield common.remove_previous_daemon(service);
+    
+    //TODO add parameter to keep environment variables if needed    
+    yield delete_environment_variables(environment_variables);
 });
 
 function* verify_service_exists(service_name) {
@@ -58,6 +62,7 @@ function* verify_service_exists(service_name) {
 }
 
 function* stop_and_uninstall_service(service, service_name) {
+    console.log("stop_and_uninstall_service");
     // Make sure we kick off the stop event on next tick BEFORE we yield
     setImmediate(_ => service.stop());
 
@@ -67,10 +72,22 @@ function* stop_and_uninstall_service(service, service_name) {
         switch (e.type) {
             case 'alreadystopped':
             case 'stop':
-                yield elevate('sc delete ' + service_name);
+                yield elevate('sc delete ' + service_name);                                
                 return;
         }
     }
+    
+
+}
+
+function* delete_environment_variables(environment_variables){
+    environment_variables.forEach(function(value){           
+        node_win.elevate(`REG delete "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment" /F /V ${value.name}`, err => {
+            if(err) {
+                throw err;
+            }            
+        });        
+      });
 }
 
 // Checks if the service was fully uninstalled, if not invokes 'sc stop' to give it a little nudge
